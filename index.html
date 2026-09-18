@@ -1,0 +1,1324 @@
+<title>Morphology Stepper</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+
+:root{
+  color-scheme: light dark;
+
+  --ground:#E5E8EE;
+  --panel:#FCFCFD;
+  --well:#EFF1F5;
+  --line:#CFD5DE;
+  --line-2:#A9B1BE;
+  --ink:#14181F;
+  --ink-2:#434C5A;
+  --ink-3:#646E7C;
+
+  --cell-0:#FFFFFF;
+  --cell-1:#1C232E;
+  --num-on:#EDF0F4;
+  --num-off:#6D7684;
+
+  --amber:#8F5409;
+  --amber-soft:#B87A1E;
+  --on-amber:#FFFFFF;
+  --amber-fill:rgba(143,84,9,.11);
+  --amber-line:rgba(143,84,9,.55);
+
+  --teal:#06584E;
+  --teal-fill:rgba(6,88,78,.12);
+  --teal-line:rgba(6,88,78,.55);
+
+  --focus:#0A5BD3;
+
+  --font-display:'Archivo','Helvetica Neue',Arial,sans-serif;
+  --font-body:'Source Serif 4',Georgia,'Times New Roman',serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+
+  --cell:28px;
+  --gap:2px;
+  --r:5px;
+}
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0D1116;
+    --panel:#161B22;
+    --well:#1C222B;
+    --line:#2C333D;
+    --line-2:#414A56;
+    --ink:#E6EBF1;
+    --ink-2:#AEB8C4;
+    --ink-3:#8A94A1;
+    --cell-0:#11161D;
+    --cell-1:#DFE5EC;
+    --num-on:#11161D;
+    --num-off:#8A94A1;
+    --amber:#F0B45C;
+    --amber-soft:#D79B41;
+    --on-amber:#15191F;
+    --amber-fill:rgba(240,180,92,.15);
+    --amber-line:rgba(240,180,92,.62);
+    --teal:#4FD3BA;
+    --teal-fill:rgba(79,211,186,.15);
+    --teal-line:rgba(79,211,186,.6);
+    --focus:#7FB2FF;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0D1116;
+  --panel:#161B22;
+  --well:#1C222B;
+  --line:#2C333D;
+  --line-2:#414A56;
+  --ink:#E6EBF1;
+  --ink-2:#AEB8C4;
+  --ink-3:#8A94A1;
+  --cell-0:#11161D;
+  --cell-1:#DFE5EC;
+  --num-on:#11161D;
+  --num-off:#8A94A1;
+  --amber:#F0B45C;
+  --amber-soft:#D79B41;
+  --on-amber:#15191F;
+  --amber-fill:rgba(240,180,92,.15);
+  --amber-line:rgba(240,180,92,.62);
+  --teal:#4FD3BA;
+  --teal-fill:rgba(79,211,186,.15);
+  --teal-line:rgba(79,211,186,.6);
+  --focus:#7FB2FF;
+}
+
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--font-body);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.page{max-width:1240px;margin:0 auto;padding-inline:20px;padding-block:30px 60px}
+
+.sr{
+  position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;
+}
+
+/* ───────────── masthead ───────────── */
+.masthead{
+  border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:22px;
+  display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);
+  column-gap:34px;align-items:end;
+}
+.eyebrow{
+  font-family:var(--font-mono);font-size:12px;font-weight:500;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px;
+}
+h1{
+  font-family:var(--font-display);font-weight:700;font-size:clamp(29px,5vw,44px);
+  letter-spacing:-.02em;line-height:1.04;margin:0 0 12px;text-wrap:balance;
+}
+.standfirst{margin:0;color:var(--ink-2);font-size:17px}
+.standfirst code{font-family:var(--font-mono);font-size:.88em;color:var(--ink)}
+.masthead h1{grid-column:1 / -1}
+.masthead .eyebrow{grid-column:1;align-self:center}
+.theme{grid-column:2;justify-self:end;align-self:center;display:flex;gap:5px}
+.tbtn{min-width:34px;padding:4px 7px;font-size:15px;line-height:1.2;font-family:inherit}
+@media (max-width:760px){
+  .masthead{grid-template-columns:minmax(0,1fr) auto;row-gap:14px}
+  .masthead .standfirst,.masthead .keys{grid-column:1 / -1}
+}
+.keys{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:7px 10px}
+.keys li{
+  font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);
+  display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
+}
+
+/* ───────────── shell ───────────── */
+.shell{display:grid;grid-template-columns:302px minmax(0,1fr);gap:20px;align-items:stretch}
+.col-right{display:flex;flex-direction:column;gap:16px;min-width:0}
+@media (max-width:920px){.shell{grid-template-columns:1fr}}
+
+/* ───────────── control rail ───────────── */
+.rail{display:flex;flex-direction:column;gap:14px;min-width:0}
+.grp{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  padding:14px 15px 15px;display:flex;flex-direction:column;gap:11px;
+}
+.grp-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.grp h2{
+  font-family:var(--font-mono);font-size:11.5px;font-weight:600;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--ink-2);margin:0;
+}
+.grp .dims{font-family:var(--font-mono);font-size:12px;color:var(--ink-3)}
+.hint{margin:0;font-size:14px;line-height:1.45;color:var(--ink-3)}
+.hint code{font-family:var(--font-mono);font-size:.87em}
+.sublbl{
+  font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--ink-3);
+  display:flex;align-items:center;gap:9px;margin-top:2px;
+}
+.sublbl::after{content:"";flex:1 1 auto;height:1px;background:var(--line)}
+
+/* the stencil group wears the amber rule that the window box wears */
+.grp-se{border-left:3px solid var(--amber)}
+
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+
+/* ───────────── controls ───────────── */
+button{font:inherit;color:inherit;cursor:pointer}
+.btn{
+  font-family:var(--font-mono);font-size:12.5px;font-weight:500;
+  min-height:32px;padding:6px 11px;border:1px solid var(--line-2);border-radius:4px;
+  background:var(--panel);color:var(--ink-2);
+  transition:background .12s,color .12s,border-color .12s;
+}
+.btn:hover{border-color:var(--ink-3);color:var(--ink);background:var(--well)}
+.btn[aria-pressed="true"],.btn[aria-current="true"]{
+  background:var(--ink);border-color:var(--ink);color:var(--panel);
+}
+.btn-mini{min-width:30px;min-height:30px;padding:4px 6px;text-align:center}
+.btn-go{background:var(--amber);border-color:var(--amber);color:var(--on-amber);font-weight:600}
+.btn-go:hover{background:var(--amber-soft);border-color:var(--amber-soft);color:var(--on-amber)}
+.btn:disabled{opacity:.42;cursor:not-allowed}
+.btn:disabled:hover{background:var(--panel);border-color:var(--line-2);color:var(--ink-2)}
+
+:where(button,input,[tabindex]):focus-visible{
+  outline:2px solid var(--focus);outline-offset:2px;border-radius:4px;
+}
+
+.sizer{gap:5px}
+.szlbl{
+  font-family:var(--font-mono);font-size:11px;color:var(--ink-3);
+  letter-spacing:.08em;text-transform:uppercase;
+}
+.szval{
+  font-family:var(--font-mono);font-size:13px;color:var(--ink);font-weight:600;
+  min-width:18px;text-align:center;font-variant-numeric:tabular-nums;
+}
+.szsep{width:1px;align-self:stretch;background:var(--line);margin:2px 4px}
+
+/* stencil grids */
+.se-block{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.se-unit{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.se-cap{
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.02em;
+  color:var(--ink-3);max-width:118px;line-height:1.4;
+}
+.se-cap.hot{color:var(--amber)}
+.se-cap b{font-weight:600}
+.se-arrow{
+  font-family:var(--font-mono);font-size:15px;color:var(--line-2);
+  align-self:center;padding-bottom:18px;
+}
+.se-grid{display:grid;gap:2px}
+.se-cell{
+  width:22px;height:22px;border-radius:3px;border:1px solid var(--line-2);
+  background:var(--cell-0);padding:0;display:grid;place-items:center;
+  font-family:var(--font-mono);font-size:11px;color:var(--num-off);
+  transition:background .12s;
+}
+.se-cell.on{background:var(--cell-1);color:var(--num-on);border-color:transparent}
+.se-cell.ctr{box-shadow:inset 0 0 0 2px var(--amber)}
+.se-grid.sm .se-cell{width:19px;height:19px;font-size:10px}
+.se-meta{
+  font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);line-height:1.7;
+}
+.se-meta b{color:var(--ink-2);font-weight:600}
+
+/* ───────────── work column ───────────── */
+.work{
+  display:flex;flex-direction:column;min-width:0;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;
+}
+
+.stage-scroll{overflow-x:auto;padding:20px 18px 10px}
+.stage{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px 4px}
+
+.board-col{
+  display:flex;flex-direction:column;gap:10px;
+  padding:9px 11px 11px;border-radius:4px;
+  border:1px solid transparent;border-left:3px solid transparent;
+}
+.board-col.is-src{border-color:var(--line);border-left-color:var(--amber);background:var(--well)}
+.board-col.is-dst{border-color:var(--line);border-left-color:var(--teal)}
+
+.board-head{min-height:40px}
+.board-eyebrow{
+  font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);display:block;
+}
+.board-name{
+  font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--ink);
+  display:block;white-space:nowrap;
+}
+.board-col.is-src .board-name{color:var(--amber)}
+.board-col.is-dst .board-name{color:var(--teal)}
+.board-badge{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);display:block;white-space:nowrap}
+.role-tag{
+  font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;padding:1px 6px;border-radius:3px;display:inline-block;
+}
+.is-src .role-tag{background:var(--amber-fill);color:var(--amber)}
+.is-dst .role-tag{background:var(--teal-fill);color:var(--teal)}
+
+.gridwrap{display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;gap:5px}
+.idx{
+  font-family:var(--font-mono);font-size:11px;color:var(--ink-3);
+  display:grid;gap:var(--gap);font-variant-numeric:tabular-nums;
+}
+.idx span{display:grid;place-items:center;width:var(--cell);height:var(--cell)}
+.idx-col{grid-column:2;grid-row:1;grid-auto-flow:column}
+.idx-row{grid-column:1;grid-row:2}
+.idx-row span{height:var(--cell);width:18px}
+.corner{grid-column:1;grid-row:1}
+
+.board{grid-column:2;grid-row:2;position:relative;display:grid;gap:var(--gap)}
+
+.cell{
+  width:var(--cell);height:var(--cell);border-radius:3px;
+  border:1px solid var(--line);background:var(--cell-0);padding:0;
+  display:grid;place-items:center;
+  font-family:var(--font-mono);font-size:max(9px, calc(var(--cell) * .44));
+  font-weight:600;color:var(--num-off);
+  transition:background .18s,color .18s,box-shadow .12s;
+}
+.cell.on{background:var(--cell-1);color:var(--num-on);border-color:transparent}
+.cell[data-t]{background:color-mix(in oklab, var(--cell-1) calc(var(--t) * 100%), var(--cell-0))}
+.cell.ro{cursor:default}
+.cell.pend{background:transparent;border-style:dashed;border-color:var(--line);color:transparent}
+.cell.pad{background:transparent;border:1px dashed var(--line-2);color:var(--ink-3);cursor:default}
+.cell.pad.hide{border-color:transparent;color:transparent}
+/* window / anchor / target carry a shape cue as well as a colour */
+.cell.inwin{box-shadow:inset 0 0 0 2px var(--amber-line)}
+.cell.anchor{box-shadow:inset 0 0 0 2px var(--amber), inset 0 0 0 4px var(--amber-fill)}
+.cell.target{
+  box-shadow:inset 0 0 0 3px var(--teal);border-color:transparent;
+  color:var(--teal);background:var(--teal-fill);
+}
+.cell.fresh{animation:pop .5s ease-out}
+@keyframes pop{from{box-shadow:inset 0 0 0 3px var(--teal-line)} to{box-shadow:inset 0 0 0 0 transparent}}
+
+.win{
+  position:absolute;left:0;top:0;pointer-events:none;
+  border:2px solid var(--amber);border-radius:4px;background:var(--amber-fill);
+  transition:transform .16s ease-out,width .12s,height .12s;display:none;
+}
+.board-col.is-src .win{display:block}
+
+.arrow{display:flex;flex-direction:column;align-items:center;gap:2px;padding:0 4px;align-self:center}
+.arrow .glyph{font-family:var(--font-mono);font-size:17px;color:var(--line-2);line-height:1}
+.arrow .lbl{
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;
+  color:var(--ink-3);text-transform:uppercase;font-weight:600;
+}
+.board-col.is-src + .arrow .glyph,.board-col.is-src + .arrow .lbl{color:var(--amber)}
+
+@media (prefers-reduced-motion: reduce){
+  .win{transition:none}.cell.fresh{animation:none}.cell{transition:none}
+}
+
+.legend{
+  display:flex;flex-wrap:wrap;gap:7px 18px;padding:2px 18px 14px;
+  font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);
+}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.swatch{width:15px;height:15px;border-radius:3px;border:1px solid var(--line);flex:0 0 auto}
+.sw-on{background:var(--cell-1);border-color:transparent}
+.sw-off{background:var(--cell-0)}
+.sw-pad{background:transparent;border:1px dashed var(--line-2)}
+.sw-win{background:var(--amber-fill);border:2px solid var(--amber)}
+.sw-tgt{background:var(--teal-fill);border:2px solid var(--teal)}
+
+/* ───────────── transport ───────────── */
+.transport{
+  display:flex;flex-wrap:wrap;gap:12px;align-items:center;
+  padding:12px 18px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  background:var(--well);
+}
+.spd{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3)}
+input[type=range]{width:110px;accent-color:var(--amber)}
+.counter{
+  font-family:var(--font-mono);font-size:12.5px;color:var(--ink-2);
+  font-variant-numeric:tabular-nums;margin-left:auto;
+}
+.counter b{color:var(--ink);font-weight:600}
+
+/* ───────────── readout ───────────── */
+.readout{padding:15px 18px 17px;display:flex;flex-direction:column;gap:12px}
+.steps{
+  display:flex;flex-wrap:wrap;gap:0;align-items:stretch;
+  border:1px solid var(--line);border-radius:4px;overflow:hidden;
+}
+.step{
+  display:flex;flex-direction:column;gap:2px;padding:8px 13px;
+  border-right:1px solid var(--line);flex:1 1 auto;min-width:0;
+}
+.step:last-child{border-right:0}
+.step dt{
+  font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);
+}
+.step dd{
+  margin:0;font-family:var(--font-mono);font-size:14px;color:var(--ink);
+  white-space:nowrap;overflow-x:auto;
+}
+.step.s-win{background:var(--amber-fill)}
+.step.s-win dt{color:var(--amber)}
+.step.s-res{background:var(--teal-fill)}
+.step.s-res dt{color:var(--teal)}
+.step.s-res dd{color:var(--teal);font-weight:600}
+.vals{letter-spacing:.08em}
+.vals i{font-style:normal;color:var(--amber);font-weight:600}
+.vals sup{color:var(--amber);font-size:.72em}
+
+.gloss{margin:0;color:var(--ink-2);font-size:16px;max-width:72ch}
+.gloss strong{color:var(--ink);font-weight:600}
+.gloss .mono{font-family:var(--font-mono);font-size:.88em;color:var(--ink)}
+.tally{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3)}
+.tally b{color:var(--ink-2);font-weight:600}
+
+/* ───────────── code ───────────── */
+.codepanel{
+  border:1px solid var(--line);border-radius:var(--r);background:var(--panel);
+  overflow:hidden;flex:1 1 auto;display:flex;flex-direction:column;min-height:0;
+}
+.codepanel pre{flex:1 1 auto}
+.codebar{
+  display:flex;align-items:center;gap:12px;padding:10px 16px;
+  border-bottom:1px solid var(--line);background:var(--well);
+}
+.codebar h2{
+  font-family:var(--font-mono);font-size:11.5px;font-weight:600;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--ink-2);margin:0;
+}
+.codebar .btn{margin-left:auto}
+pre{
+  margin:0;padding:16px;overflow-x:auto;
+  font-family:var(--font-mono);font-size:13px;line-height:1.65;color:var(--ink);
+}
+pre .cm{color:var(--ink-3)}
+
+footer{
+  margin-top:24px;padding-top:16px;border-top:1px solid var(--line);
+  font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);
+  display:flex;flex-wrap:wrap;gap:8px 20px;
+}
+kbd{
+  font-family:var(--font-mono);font-size:11px;border:1px solid var(--line-2);
+  border-bottom-width:2px;border-radius:3px;padding:1px 5px;color:var(--ink-2);
+}
+</style>
+
+<div class="page">
+
+  <header class="masthead">
+    <p class="eyebrow">BME 404 &middot; Lab 03 &middot; Medical Imaging Sessional</p>
+    <div class="theme" role="group" aria-label="Colour theme">
+      <button class="btn tbtn" data-theme-btn="auto"  aria-pressed="true"
+              title="Follow system theme" aria-label="Follow system theme">&#127763;</button>
+      <button class="btn tbtn" data-theme-btn="light" aria-pressed="false"
+              title="Light" aria-label="Light theme">&#127774;</button>
+      <button class="btn tbtn" data-theme-btn="dark"  aria-pressed="false"
+              title="Dark" aria-label="Dark theme">&#127769;</button>
+    </div>
+    <h1>Morphology Stepper</h1>
+    <p class="standfirst">
+      A hands-on way to see what <code>imerode</code>, <code>imdilate</code> and
+      <code>imopen</code> actually do to a matrix &mdash; one cell at a time, with the arithmetic
+      written out as you go.
+    </p>
+    <ul class="keys" aria-label="Keyboard shortcuts">
+      <li><kbd>Space</kbd> play / pause</li>
+      <li><kbd>&#8592;</kbd><kbd>&#8594;</kbd> step</li>
+      <li><kbd>R</kbd> reset</li>
+      <li><kbd>&#8593;</kbd><kbd>&#8595;</kbd><kbd>&#8592;</kbd><kbd>&#8594;</kbd> move in board A</li>
+      <li><kbd>Enter</kbd> toggle a cell</li>
+    </ul>
+  </header>
+
+  <div class="shell">
+
+    <!-- ══════════ controls ══════════ -->
+    <div class="rail">
+
+      <section class="grp" aria-labelledby="h-op">
+        <div class="grp-h"><h2 id="h-op">Operation</h2></div>
+        <div class="row" id="ops"></div>
+        <p class="hint" id="op-hint"></p>
+      </section>
+
+      <section class="grp" aria-labelledby="h-in">
+        <div class="grp-h">
+          <h2 id="h-in">Input matrix</h2>
+          <span class="dims" id="a-dims">8×8</span>
+        </div>
+        <div class="row sizer" id="a-sizer">
+          <span class="szlbl" id="a-rl">rows</span>
+          <button class="btn btn-mini" data-asz="r-" aria-label="One fewer row">−</button>
+          <span class="szval" id="a-r" aria-labelledby="a-rl">8</span>
+          <button class="btn btn-mini" data-asz="r+" aria-label="One more row">+</button>
+          <span class="szsep"></span>
+          <span class="szlbl" id="a-cl">cols</span>
+          <button class="btn btn-mini" data-asz="c-" aria-label="One fewer column">−</button>
+          <span class="szval" id="a-c" aria-labelledby="a-cl">8</span>
+          <button class="btn btn-mini" data-asz="c+" aria-label="One more column">+</button>
+        </div>
+        <div class="row">
+          <button class="btn" id="a-fill">All 1</button>
+          <button class="btn" id="a-clear">Clear</button>
+          <button class="btn" id="a-invert">Invert</button>
+        </div>
+        <p class="hint" id="paint-hint">Click a cell in board <b>A</b> to toggle it.</p>
+        <div class="sublbl">Premade</div>
+        <div class="row" id="presets"></div>
+      </section>
+
+      <section class="grp grp-se" aria-labelledby="h-se">
+        <div class="grp-h">
+          <h2 id="h-se">Structuring element</h2>
+          <span class="dims" id="se-dims">3×3</span>
+        </div>
+        <p class="hint">This is the amber box on the board. Use the steppers for any other size.</p>
+        <div class="se-block">
+          <div class="se-unit">
+            <div class="se-grid" id="se-grid" role="group" aria-label="Structuring element editor"></div>
+            <span class="se-cap">se · as you type it</span>
+          </div>
+          <div class="se-arrow" aria-hidden="true">→</div>
+          <div class="se-unit">
+            <div class="se-grid sm" id="se-eff" role="img" aria-label="Footprint slid on this pass"></div>
+            <span class="se-cap" id="se-eff-cap"></span>
+          </div>
+        </div>
+        <div class="se-meta" id="se-meta"></div>
+        <div class="row sizer" id="sizer">
+          <span class="szlbl" id="s-rl">rows</span>
+          <button class="btn btn-mini" data-sz="r-" aria-label="One fewer stencil row">−</button>
+          <span class="szval" id="sz-r" aria-labelledby="s-rl">3</span>
+          <button class="btn btn-mini" data-sz="r+" aria-label="One more stencil row">+</button>
+          <span class="szsep"></span>
+          <span class="szlbl" id="s-cl">cols</span>
+          <button class="btn btn-mini" data-sz="c-" aria-label="One fewer stencil column">−</button>
+          <span class="szval" id="sz-c" aria-labelledby="s-cl">3</span>
+          <button class="btn btn-mini" data-sz="c+" aria-label="One more stencil column">+</button>
+        </div>
+        <div class="row">
+          <button class="btn" id="se-fill">All 1</button>
+          <button class="btn" id="se-clear">Clear</button>
+        </div>
+        <div class="sublbl">Premade</div>
+        <div class="row" id="se-presets"></div>
+      </section>
+
+      <section class="grp" aria-labelledby="h-disp">
+        <div class="grp-h"><h2 id="h-disp">Display</h2></div>
+        <div class="row">
+          <button class="btn" id="mode-toggle" aria-pressed="false">Grayscale 0–9</button>
+          <button class="btn" id="pad-toggle" aria-pressed="true">Show padding</button>
+        </div>
+
+        <p class="hint">
+          Padding is what MATLAB samples outside the array: <code>1</code> while eroding,
+          <code>0</code> while dilating.
+        </p>
+      </section>
+
+    </div>
+
+    <!-- ══════════ stage, transport, readout ══════════ -->
+    <div class="col-right">
+    <main class="work" aria-label="Stepper">
+
+      <div class="stage-scroll">
+        <div class="stage" id="stage"></div>
+      </div>
+
+      <div class="legend">
+        <span><i class="swatch sw-off"></i>value 0</span>
+        <span><i class="swatch sw-on"></i>value 1</span>
+        <span><i class="swatch sw-pad"></i>outside the array</span>
+        <span><i class="swatch sw-win"></i>stencil footprint</span>
+        <span><i class="swatch sw-tgt"></i>cell being decided</span>
+      </div>
+
+      <div class="transport">
+        <div class="row" role="group" aria-label="Playback">
+          <button class="btn" id="t-reset">Reset</button>
+          <button class="btn" id="t-prev">◀ Back</button>
+          <button class="btn btn-go" id="t-play" style="min-width:92px">▶ Play</button>
+          <button class="btn" id="t-next">Step ▶</button>
+          <button class="btn" id="t-end">Run to end</button>
+        </div>
+        <label class="spd" for="t-speed">Speed
+          <input type="range" id="t-speed" min="40" max="600" step="20" value="400">
+        </label>
+        <p class="counter" id="counter"></p>
+      </div>
+
+      <div class="readout">
+        <dl class="steps" id="steps">
+          <div class="step"><dt>Pass</dt><dd id="f-pass">—</dd></div>
+          <div class="step s-win"><dt>Anchor</dt><dd id="f-anchor">—</dd></div>
+          <div class="step s-win"><dt>Window</dt><dd id="f-window">—</dd></div>
+          <div class="step s-win"><dt>Values</dt><dd class="vals" id="f-values">—</dd></div>
+          <div class="step s-res"><dt>Result</dt><dd id="f-result">—</dd></div>
+        </dl>
+        <p class="gloss" id="g-text"></p>
+        <p class="tally" id="g-tally"></p>
+        <p class="sr" id="live" role="status" aria-live="polite"></p>
+      </div>
+
+    </main>
+
+    <section class="codepanel" aria-labelledby="h-code">
+    <div class="codebar">
+      <h2 id="h-code">Equivalent MATLAB</h2>
+      <button class="btn" id="copy">Copy</button>
+    </div>
+      <pre id="code"></pre>
+    </section>
+
+    </div><!-- /col-right -->
+  </div><!-- /shell -->
+
+
+</div>
+
+<script>
+(function(){
+'use strict';
+
+var art = function(s){
+  return s.trim().split('\n').map(function(l){ return l.trim().split(/\s+/).map(Number); });
+};
+
+var PRESETS = {
+  brain: { label:'Brain + speck', mode:'binary', A: art(
+    '0 0 0 0 0 0 0 0\n0 1 1 1 1 0 0 0\n0 1 1 1 1 0 0 0\n0 1 1 1 1 0 0 0\n' +
+    '0 1 1 1 1 0 0 0\n0 0 0 0 0 0 1 0\n0 0 0 0 0 0 0 0\n0 0 0 0 0 0 0 0') },
+  slide8: { label:'Slide 8', mode:'binary', A: art(
+    '0 0 0 0 0 0\n0 1 1 1 0 0\n0 1 1 1 0 0\n0 1 1 1 0 0\n0 0 0 0 0 0\n0 0 0 0 0 0') },
+  rim: { label:'Skull rim', mode:'binary', A: art(
+    '0 0 0 0 0 0 0 0 0 0\n0 1 1 1 1 1 1 1 1 0\n0 1 0 0 0 0 0 0 1 0\n' +
+    '0 1 0 1 1 1 1 0 1 0\n0 1 0 1 1 1 1 0 1 0\n0 1 0 1 1 1 1 0 1 0\n' +
+    '0 1 0 1 1 1 1 0 1 0\n0 1 0 0 0 0 0 0 1 0\n0 1 1 1 1 1 1 1 1 0\n' +
+    '0 0 0 0 0 0 0 0 0 0') },
+  bridge: { label:'Narrow bridge', mode:'binary', A: art(
+    '0 0 0 0 0 0 0 0\n0 0 0 0 0 0 0 0\n0 1 1 1 0 1 1 1\n0 1 1 1 1 1 1 1\n' +
+    '0 1 1 1 0 1 1 1\n0 0 0 0 0 0 0 0\n0 0 0 0 0 0 0 0\n0 0 0 0 0 0 0 0') },
+  gray: { label:'Gradient blob', mode:'gray', A: art(
+    '1 1 2 2 2 1 1 1\n1 3 5 6 5 3 1 9\n2 5 8 9 8 5 2 1\n2 6 9 9 9 6 2 1\n' +
+    '2 5 8 9 8 5 2 1\n1 3 5 6 5 3 1 1\n1 1 2 2 2 1 1 1\n1 1 1 1 1 1 1 1') }
+};
+
+var SES = {
+  ones33: { label:'ones(3,3)', S: art('1 1 1\n1 1 1\n1 1 1') },
+  ones22: { label:'ones(2,2)', S: art('1 1\n1 1') },
+  cross:  { label:'Cross',     S: art('0 1 0\n1 1 1\n0 1 0') }
+};
+
+var OPS = {
+  erode:  { label:'imerode',  hint:'Output is the <b>min</b> over the stencil — 1 only when every covered cell is 1.' },
+  dilate: { label:'imdilate', hint:'Output is the <b>max</b> over the stencil — 1 as soon as any covered cell is 1.' },
+  open:   { label:'imopen',   hint:'Erode, then dilate. Keeps whatever the stencil fits inside; deletes the rest.' },
+  close:  { label:'imclose',  hint:'Dilate, then erode. Fills what is too small to admit the stencil.' }
+};
+
+var S = {
+  A:null, rows:0, cols:0, se:null, seRows:0, seCols:0,
+  op:'open', mode:'binary', showPad:true,
+  step:0, playing:false, timer:null, speed:240,
+  presetKey:'brain', seKey:'ones33',
+  grids:null, cellPx:28, gapPx:2
+};
+
+var $ = function(id){ return document.getElementById(id); };
+
+/* ── theme: Auto follows the viewer's system setting, Light and Dark override it ── */
+var applyTheme = function(t){
+  var root = document.documentElement;
+  if(t === 'light' || t === 'dark') root.setAttribute('data-theme', t);
+  else { root.removeAttribute('data-theme'); t = 'auto'; }
+  try{ localStorage.setItem('morph-theme', t); }catch(err){ /* private window */ }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-theme-btn]'), function(b){
+    b.setAttribute('aria-pressed', b.dataset.themeBtn === t ? 'true' : 'false');
+  });
+};
+(function initTheme(){
+  var saved = 'auto';
+  try{ saved = localStorage.getItem('morph-theme') || 'auto'; }catch(err){ /* blocked */ }
+  applyTheme(saved);
+  Array.prototype.forEach.call(document.querySelectorAll('[data-theme-btn]'), function(b){
+    b.addEventListener('click', function(){ applyTheme(b.dataset.themeBtn); });
+  });
+})();
+var maxVal = function(){ return S.mode === 'binary' ? 1 : 9; };
+var N = function(){ return S.rows * S.cols; };
+var passList = function(){
+  if(S.op === 'erode')  return ['erode'];
+  if(S.op === 'dilate') return ['dilate'];
+  if(S.op === 'open')   return ['erode','dilate'];
+  return ['dilate','erode'];
+};
+var total = function(){ return passList().length * N(); };
+var seCentre = function(){
+  return [Math.floor((S.seRows + 1) / 2) - 1, Math.floor((S.seCols + 1) / 2) - 1];
+};
+var seOffsets = function(reflect){
+  var c = seCentre(), out = [], i, j, dr, dc;
+  for(i = 0; i < S.seRows; i++) for(j = 0; j < S.seCols; j++){
+    if(S.se[i][j]){ dr = i - c[0]; dc = j - c[1]; out.push(reflect ? [-dr,-dc] : [dr,dc]); }
+  }
+  if(!out.length) out.push([0,0]);
+  return out;
+};
+var padR = function(){ var o=seOffsets(false),m=0,i; for(i=0;i<o.length;i++) m=Math.max(m,Math.abs(o[i][0])); return m; };
+var padC = function(){ var o=seOffsets(false),m=0,i; for(i=0;i<o.length;i++) m=Math.max(m,Math.abs(o[i][1])); return m; };
+var padValue = function(op){ return op === 'erode' ? maxVal() : 0; };
+
+var applyAt = function(G, r, c, op){
+  var offs = seOffsets(op === 'dilate'), sm = [], vals = [], i, rr, cc, v, isPad;
+  for(i = 0; i < offs.length; i++){
+    rr = r + offs[i][0]; cc = c + offs[i][1];
+    isPad = (rr < 0 || rr >= S.rows || cc < 0 || cc >= S.cols);
+    v = isPad ? padValue(op) : G[rr][cc];
+    sm.push({ r:rr, c:cc, v:v, pad:isPad }); vals.push(v);
+  }
+  return { samples:sm, result: op === 'erode' ? Math.min.apply(null, vals) : Math.max.apply(null, vals) };
+};
+var applyOp = function(G, op){
+  var out = [], r, c, row;
+  for(r = 0; r < S.rows; r++){ row = [];
+    for(c = 0; c < S.cols; c++) row.push(applyAt(G,r,c,op).result);
+    out.push(row); }
+  return out;
+};
+var recompute = function(){
+  var ps = passList(), g = [S.A], i;
+  for(i = 0; i < ps.length; i++) g.push(applyOp(g[g.length-1], ps[i]));
+  S.grids = g;
+};
+var decode = function(step){
+  var n = N(), p = Math.floor(step/n), k = step % n;
+  return { pass:p, idx:k, r:Math.floor(k/S.cols), c:k % S.cols };
+};
+var countFg = function(G){
+  var n=0,r,c; for(r=0;r<S.rows;r++) for(c=0;c<S.cols;c++) if(G[r][c]>0) n++; return n;
+};
+
+var stage = $('stage'), boards = [], sig = '';
+
+var boardTitles = function(){
+  var ps = passList(), out = [{ eye:'Input', name:'A', badge:'' }], i;
+  for(i = 0; i < ps.length; i++){
+    out.push({
+      eye: ps.length > 1 ? 'Pass ' + (i+1) + ' of ' + ps.length : 'Result',
+      name: (ps[i] === 'erode' ? 'imerode' : 'imdilate') + '(' + (i === 0 ? 'A' : 'ans') + ', se)',
+      badge: (i === ps.length - 1 && ps.length > 1) ? '= ' + OPS[S.op].label + '(A, se)' : ''
+    });
+  }
+  return out;
+};
+
+var computeCellPx = function(){
+  /* Fit EVERY board on screen at once instead of scrolling: divide the stage
+     width by all the columns on show, after allowing for per-board chrome. */
+  var nb = passList().length + 1;
+  var tc = S.cols + 2 * padC();
+  var host = stage.parentNode;
+  var avail = (host && host.clientWidth ? host.clientWidth : 900) - 40;
+  var chrome = nb * 52 + (nb - 1) * 38;      /* board padding + row gutter + arrows */
+  var fit = Math.floor((avail - chrome) / (nb * tc) - S.gapPx);
+  return Math.max(14, Math.min(34, fit));    /* under 14 the boards wrap instead */
+};
+
+var buildStage = function(){
+  var titles = boardTitles(), pr = padR(), pc = padC();
+  var tr = S.rows + 2*pr, tc = S.cols + 2*pc;
+  S.cellPx = computeCellPx();
+  stage.style.setProperty('--cell', S.cellPx + 'px');
+  stage.style.setProperty('--gap', S.gapPx + 'px');
+  stage.textContent = ''; boards = [];
+
+  titles.forEach(function(t, bi){
+    if(bi > 0){
+      var ar = document.createElement('div');
+      ar.className = 'arrow'; ar.setAttribute('aria-hidden','true');
+      ar.innerHTML = '<span class="glyph">→</span><span class="lbl">' +
+        (passList()[bi-1] === 'erode' ? 'min' : 'max') + '</span>';
+      stage.appendChild(ar);
+    }
+    var col = document.createElement('div');
+    col.className = 'board-col';
+
+    var head = document.createElement('div');
+    head.className = 'board-head';
+    head.innerHTML = '<span class="board-eyebrow">' + t.eye + '</span>' +
+      '<span class="board-name">' + t.name + '</span>' +
+      (t.badge ? '<span class="board-badge">' + t.badge + '</span>' : '');
+    col.appendChild(head);
+
+    var wrap = document.createElement('div');
+    wrap.className = 'gridwrap';
+    var corner = document.createElement('div'); corner.className = 'corner'; wrap.appendChild(corner);
+
+    var ic = document.createElement('div');
+    ic.className = 'idx idx-col'; ic.setAttribute('aria-hidden','true');
+    ic.style.gridTemplateColumns = 'repeat(' + tc + ', var(--cell))';
+    var k, s, cn, rn;
+    for(k = 0; k < tc; k++){
+      s = document.createElement('span'); cn = k - pc;
+      s.textContent = (cn >= 0 && cn < S.cols) ? String(cn+1) : '';
+      ic.appendChild(s);
+    }
+    wrap.appendChild(ic);
+
+    var ir = document.createElement('div');
+    ir.className = 'idx idx-row'; ir.setAttribute('aria-hidden','true');
+    for(k = 0; k < tr; k++){
+      s = document.createElement('span'); rn = k - pr;
+      s.textContent = (rn >= 0 && rn < S.rows) ? String(rn+1) : '';
+      ir.appendChild(s);
+    }
+    wrap.appendChild(ir);
+
+    var board = document.createElement('div');
+    board.className = 'board';
+    board.style.gridTemplateColumns = 'repeat(' + tc + ', var(--cell))';
+    if(bi === 0){ board.setAttribute('role','group'); board.setAttribute('aria-label','Input matrix A, editable'); }
+    else { board.setAttribute('role','img'); }
+
+    var map = {}, i, j, r, c, inside, el;
+    for(i = 0; i < tr; i++) for(j = 0; j < tc; j++){
+      r = i - pr; c = j - pc;
+      inside = (r >= 0 && r < S.rows && c >= 0 && c < S.cols);
+      el = document.createElement(inside && bi === 0 ? 'button' : 'div');
+      el.className = 'cell' + (inside ? '' : ' pad') + (inside && bi > 0 ? ' ro' : '');
+      if(inside && bi === 0){
+        el.type = 'button'; el.tabIndex = -1;
+        el.dataset.r = r; el.dataset.c = c;
+      } else {
+        el.setAttribute('aria-hidden','true');
+      }
+      map[r + ',' + c] = el;
+      board.appendChild(el);
+    }
+    var win = document.createElement('div'); win.className = 'win'; win.setAttribute('aria-hidden','true');
+    board.appendChild(win);
+
+    wrap.appendChild(board); col.appendChild(wrap); stage.appendChild(col);
+    boards.push({ col:col, map:map, win:win, board:board });
+  });
+
+  if(boards[0] && boards[0].map['0,0']) boards[0].map['0,0'].tabIndex = 0;
+};
+
+var buildSeGrid = function(){
+  var g = $('se-grid'), c = seCentre(), i, j, b, n = 0;
+  g.textContent = '';
+  g.style.gridTemplateColumns = 'repeat(' + S.seCols + ', 22px)';
+  for(i = 0; i < S.seRows; i++) for(j = 0; j < S.seCols; j++){
+    b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'se-cell' + (S.se[i][j] ? ' on' : '') + (i === c[0] && j === c[1] ? ' ctr' : '');
+    b.textContent = S.se[i][j];
+    b.dataset.i = i; b.dataset.j = j;
+    b.setAttribute('aria-pressed', S.se[i][j] ? 'true' : 'false');
+    b.setAttribute('aria-label', 'Stencil row ' + (i+1) + ' column ' + (j+1) +
+      (i === c[0] && j === c[1] ? ', anchor' : ''));
+    g.appendChild(b);
+  }
+  $('se-dims').textContent = S.seRows + '×' + S.seCols;
+  $('sz-r').textContent = S.seRows; $('sz-c').textContent = S.seCols;
+  for(i = 0; i < S.seRows; i++) for(j = 0; j < S.seCols; j++) n += S.se[i][j] ? 1 : 0;
+  $('se-meta').innerHTML = 'Anchor <b>floor((size+1)/2) = [' + (c[0]+1) + ' ' + (c[1]+1) + ']</b>' +
+    '<br>' + n + ' cell' + (n === 1 ? '' : 's') + ' in the neighbourhood';
+};
+
+var effOp = null;
+var renderEffSe = function(op){
+  var offs = seOffsets(op === 'dilate'), rMin=0,rMax=0,cMin=0,cMax=0, i, set = {};
+  for(i = 0; i < offs.length; i++){
+    rMin=Math.min(rMin,offs[i][0]); rMax=Math.max(rMax,offs[i][0]);
+    cMin=Math.min(cMin,offs[i][1]); cMax=Math.max(cMax,offs[i][1]);
+    set[offs[i][0]+','+offs[i][1]] = 1;
+  }
+  var g = $('se-eff'), r, c, d, on;
+  g.textContent = '';
+  g.style.gridTemplateColumns = 'repeat(' + (cMax-cMin+1) + ', 19px)';
+  for(r = rMin; r <= rMax; r++) for(c = cMin; c <= cMax; c++){
+    on = !!set[r+','+c];
+    d = document.createElement('div');
+    d.className = 'se-cell' + (on ? ' on' : '') + (r === 0 && c === 0 ? ' ctr' : '');
+    d.textContent = on ? '1' : '0';
+    g.appendChild(d);
+  }
+  var cap = $('se-eff-cap');
+  cap.className = op === 'dilate' ? 'se-cap hot' : 'se-cap';
+  cap.innerHTML = op === 'dilate'
+    ? 'imdilate slides it <b>reflected</b>' : 'imerode slides it <b>unflipped</b>';
+  g.setAttribute('aria-label', op === 'dilate'
+    ? 'Footprint for this pass: the stencil reflected about its anchor'
+    : 'Footprint for this pass: the stencil unflipped');
+};
+
+var setCell = function(el, v){
+  var mv = maxVal();
+  el.textContent = String(v);
+  el.classList.toggle('on', v >= mv);
+  if(S.mode === 'gray'){
+    el.dataset.t = String(v/mv);
+    el.style.setProperty('--t', String(v/mv));
+    el.style.color = (v/mv) > 0.55 ? 'var(--num-on)' : 'var(--num-off)';
+  } else {
+    delete el.dataset.t; el.style.removeProperty('--t'); el.style.removeProperty('color');
+  }
+};
+
+var paint = function(){
+  var tot = total(), n = N(), ps = passList();
+  var d = S.step >= tot ? null : decode(S.step);
+  var cur = d ? applyAt(S.grids[d.pass], d.r, d.c, ps[d.pass]) : null;
+
+  var showOp = d ? ps[d.pass] : ps[ps.length-1];
+  if(showOp !== effOp){ effOp = showOp; renderEffSe(showOp); }
+
+  boards.forEach(function(b, bi){
+    var isSrc = !!d && bi === d.pass, isDst = !!d && bi === d.pass + 1;
+    var G = S.grids[bi], filled = n, pi = bi - 1;
+    if(bi > 0){
+      if(!d) filled = n;
+      else if(d.pass > pi) filled = n;
+      else if(d.pass === pi) filled = d.idx;
+      else filled = 0;
+    }
+    b.col.classList.toggle('is-src', isSrc);
+    b.col.classList.toggle('is-dst', isDst);
+
+    var tag = b.col.querySelector('.role-tag');
+    if(isSrc || isDst){
+      if(!tag){
+        tag = document.createElement('span'); tag.className = 'role-tag';
+        b.col.querySelector('.board-head').appendChild(tag);
+      }
+      tag.textContent = isSrc ? 'reading' : 'writing';
+    } else if(tag){ tag.remove(); }
+
+    var r, c, k, el;
+    for(r = 0; r < S.rows; r++) for(c = 0; c < S.cols; c++){
+      el = b.map[r+','+c]; k = r*S.cols + c;
+      el.classList.remove('inwin','anchor','target');
+      if(bi > 0 && k >= filled){
+        el.classList.add('pend'); el.classList.remove('on');
+        el.textContent = ''; delete el.dataset.t;
+        el.style.removeProperty('--t'); el.style.removeProperty('color');
+      } else {
+        el.classList.remove('pend'); setCell(el, G[r][c]);
+      }
+      if(bi === 0){
+        el.setAttribute('aria-label', 'Row ' + (r+1) + ' column ' + (c+1) + ', value ' + G[r][c]);
+      }
+      el.classList.toggle('fresh', bi > 0 && !!d && k === d.idx - 1 && d.pass === bi - 1);
+    }
+
+    var pr = padR(), pc = padC(), show;
+    for(r = -pr; r < S.rows + pr; r++) for(c = -pc; c < S.cols + pc; c++){
+      if(r >= 0 && r < S.rows && c >= 0 && c < S.cols) continue;
+      el = b.map[r+','+c]; if(!el) continue;
+      el.classList.remove('inwin');
+      show = isSrc && S.showPad;
+      el.classList.toggle('hide', !show);
+      el.textContent = show ? String(padValue(ps[d.pass])) : '';
+    }
+
+    if(isSrc && cur){
+      var i, s;
+      for(i = 0; i < cur.samples.length; i++){
+        s = cur.samples[i]; el = b.map[s.r+','+s.c];
+        if(el) el.classList.add('inwin');
+      }
+      el = b.map[d.r+','+d.c];
+      if(el){ el.classList.remove('inwin'); el.classList.add('anchor'); }
+
+      var offs = seOffsets(ps[d.pass] === 'dilate');
+      var rMin=Infinity,rMax=-Infinity,cMin=Infinity,cMax=-Infinity;
+      for(i = 0; i < offs.length; i++){
+        rMin=Math.min(rMin,offs[i][0]); rMax=Math.max(rMax,offs[i][0]);
+        cMin=Math.min(cMin,offs[i][1]); cMax=Math.max(cMax,offs[i][1]);
+      }
+      var u = S.cellPx + S.gapPx;
+      b.win.style.width  = ((cMax-cMin+1)*S.cellPx + (cMax-cMin)*S.gapPx) + 'px';
+      b.win.style.height = ((rMax-rMin+1)*S.cellPx + (rMax-rMin)*S.gapPx) + 'px';
+      b.win.style.transform = 'translate(' + ((d.c+cMin+pc)*u) + 'px,' + ((d.r+rMin+pr)*u) + 'px)';
+    }
+
+    if(isDst && cur){
+      el = b.map[d.r+','+d.c];
+      if(el){
+        el.classList.add('target'); el.classList.remove('pend','on');
+        el.textContent = String(cur.result);
+        delete el.dataset.t; el.style.removeProperty('--t'); el.style.removeProperty('color');
+      }
+    }
+
+    if(bi > 0){
+      b.board.setAttribute('aria-label', boardTitles()[bi].name + ': ' +
+        (filled >= n ? 'complete, ' + countFg(G) + ' cells on' : filled + ' of ' + n + ' cells computed'));
+    }
+  });
+
+  narrate(d, cur, ps, tot);
+};
+
+var narrate = function(d, cur, ps, tot){
+  var C = $('counter'), L = $('live');
+  if(!d){
+    C.innerHTML = '<b>Complete</b> · ' + tot + ' of ' + tot + ' positions';
+    $('f-pass').textContent = 'Finished';
+    $('f-anchor').textContent = '—'; $('f-window').textContent = '—';
+    $('f-values').textContent = '—'; $('f-result').textContent = '—';
+    $('g-text').innerHTML = '<strong>Run complete.</strong> The last board is ' +
+      '<span class="mono">' + OPS[S.op].label + '(A, se)</span>. Edit a cell, change the stencil, ' +
+      'or press Reset to walk through it again.';
+    L.textContent = 'Run complete. ' + tot + ' positions evaluated.';
+    tally(S.grids[S.grids.length-1]);
+    return;
+  }
+
+  var op = ps[d.pass];
+  var opName = op === 'erode' ? 'imerode' : 'imdilate';
+  var fn = op === 'erode' ? 'min' : 'max';
+  var pos = '(' + (d.r+1) + ', ' + (d.c+1) + ')';
+
+  C.innerHTML = 'Position <b>' + (S.step+1) + '</b> of ' + tot;
+  $('f-pass').textContent = ps.length > 1
+    ? (d.pass+1) + ' of ' + ps.length + ' · ' + opName : opName;
+  $('f-anchor').textContent = pos;
+
+  var rMin=Infinity,rMax=-Infinity,cMin=Infinity,cMax=-Infinity, i, s;
+  for(i = 0; i < cur.samples.length; i++){
+    s = cur.samples[i];
+    rMin=Math.min(rMin,s.r); rMax=Math.max(rMax,s.r);
+    cMin=Math.min(cMin,s.c); cMax=Math.max(cMax,s.c);
+  }
+  $('f-window').textContent = 'rows ' + (rMin+1) + ':' + (rMax+1) + ', cols ' + (cMin+1) + ':' + (cMax+1);
+
+  var html = '', nPad = 0, nHigh = 0, nLow = 0, mv = maxVal();
+  for(i = 0; i < cur.samples.length; i++){
+    s = cur.samples[i];
+    if(s.pad){ nPad++; html += '<i>' + s.v + '<sup>p</sup></i> '; } else html += s.v + ' ';
+    if(s.v >= mv) nHigh++;
+    if(s.v === 0) nLow++;
+  }
+  $('f-values').innerHTML = html.trim();
+  $('f-result').textContent = fn + ' = ' + cur.result;
+
+  var nTot = cur.samples.length, g;
+  if(S.mode === 'gray'){
+    g = op === 'erode'
+      ? 'The <strong>darkest</strong> cell under the stencil is <span class="mono">' + cur.result +
+        '</span>, so ' + pos + ' becomes <span class="mono">' + cur.result + '</span>. Erosion is a min filter.'
+      : 'The <strong>brightest</strong> cell under the stencil is <span class="mono">' + cur.result +
+        '</span>, so ' + pos + ' becomes <span class="mono">' + cur.result + '</span>. Dilation is a max filter.';
+  } else if(op === 'erode'){
+    g = cur.result === 1
+      ? 'All ' + nTot + ' covered cells are 1 — the stencil <strong>fits entirely inside</strong> the object, so ' + pos + ' survives.'
+      : (nLow === 1 ? 'One covered cell is 0' : nLow + ' of the ' + nTot + ' covered cells are 0') +
+        ' — the stencil <strong>hangs over the background</strong>, so ' + pos + ' is erased.';
+  } else {
+    g = cur.result === 1
+      ? nHigh + ' of the ' + nTot + ' covered cells are 1 — the stencil <strong>touches</strong> the object, so ' + pos + ' turns on.'
+      : 'No covered cell is 1 — the stencil sits <strong>entirely in the background</strong>, so ' + pos + ' stays 0.';
+  }
+  if(nPad) g += ' <span class="mono">' + nPad + '</span> of those came from the padding ring, where ' +
+    opName + ' pads with <span class="mono">' + padValue(op) + '</span>.';
+  $('g-text').innerHTML = g;
+
+  L.textContent = opName + ', anchor row ' + (d.r+1) + ' column ' + (d.c+1) +
+                  ', ' + fn + ' equals ' + cur.result + '.';
+  tally(S.grids[S.grids.length-1]);
+};
+
+var tally = function(last){
+  var a = countFg(S.A), b = countFg(last), diff = b - a;
+  $('g-tally').innerHTML = 'Foreground cells &nbsp;<b>A = ' + a + '</b> &nbsp;→&nbsp; <b>' +
+    OPS[S.op].label + ' = ' + b + '</b> &nbsp;(' +
+    (diff === 0 ? 'no change' : (diff > 0 ? '+' : '−') + Math.abs(diff)) + ')';
+};
+
+var allOnes = function(M){
+  var i,j; for(i=0;i<M.length;i++) for(j=0;j<M[i].length;j++) if(!M[i][j]) return false; return true;
+};
+var codeText = function(){
+  var c = seCentre();
+  var seLit = allOnes(S.se) ? 'ones(' + S.seRows + ',' + S.seCols + ')'
+            : '[' + S.se.map(function(r){ return r.join(' '); }).join('; ') + ']';
+  var L = [];
+  L.push('A  = [' + S.A.map(function(r){ return r.join(' '); }).join('\n      ') + '];');
+  L.push('se = ' + seLit + ';');
+  L.push('§% anchor = floor((size(se)+1)/2) = [' + (c[0]+1) + ' ' + (c[1]+1) + ']');
+  L.push('');
+  L.push('B  = ' + OPS[S.op].label + '(A, se);');
+  if(S.op === 'open')  L.push('§%    identical to  imdilate(imerode(A,se), se)');
+  if(S.op === 'close') L.push('§%    identical to  imerode(imdilate(A,se), se)');
+  if(S.op === 'erode') L.push('§%    every output cell is a MIN over the neighbourhood');
+  if(S.op === 'dilate')L.push('§%    every output cell is a MAX over the reflected neighbourhood');
+  return L.join('\n');
+};
+var esc = function(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+var renderCode = function(){
+  $('code').innerHTML = codeText().split('\n').map(function(l){
+    return l.indexOf('§%') === 0 ? '<span class="cm">' + esc(l.slice(1)) + '</span>' : esc(l);
+  }).join('\n');
+};
+
+var structuralSig = function(){
+  return [S.rows,S.cols,padR(),padC(),passList().length,S.mode].join('|');
+};
+var refresh = function(rebuild){
+  effOp = null;
+  recompute();
+  if(S.step > total()) S.step = total();
+  var ns = structuralSig();
+  if(rebuild || ns !== sig){ sig = ns; buildStage(); }
+  paint(); renderCode();
+};
+
+var reseatA = function(){ S.presetKey = ''; S.step = 0; stop(); syncChrome(); refresh(true); };
+var resizeA = function(dr, dc){
+  var nr = Math.max(2, Math.min(20, S.rows + dr));
+  var nc = Math.max(2, Math.min(20, S.cols + dc));
+  if(nr === S.rows && nc === S.cols) return;
+  var out = [], i, j, row;
+  for(i = 0; i < nr; i++){ row = [];
+    for(j = 0; j < nc; j++) row.push(i < S.rows && j < S.cols ? S.A[i][j] : 0);
+    out.push(row); }
+  S.A = out; S.rows = nr; S.cols = nc; reseatA();
+};
+var setAAll = function(v){
+  var i,j; for(i=0;i<S.rows;i++) for(j=0;j<S.cols;j++) S.A[i][j]=v; reseatA();
+};
+var invertA = function(){
+  var mv = maxVal(), i, j;
+  for(i=0;i<S.rows;i++) for(j=0;j<S.cols;j++) S.A[i][j] = mv - S.A[i][j];
+  reseatA();
+};
+
+var loadPreset = function(key){
+  var p = PRESETS[key];
+  S.presetKey = key; S.mode = p.mode;
+  S.A = p.A.map(function(r){ return r.slice(); });
+  S.rows = S.A.length; S.cols = S.A[0].length; S.step = 0;
+  syncChrome(); refresh(true);
+};
+var loadSe = function(key){
+  S.seKey = key;
+  S.se = SES[key].S.map(function(r){ return r.slice(); });
+  S.seRows = S.se.length; S.seCols = S.se[0].length; S.step = 0;
+  buildSeGrid(); syncChrome(); refresh(true);
+};
+var setOp = function(op){ S.op = op; S.step = 0; syncChrome(); refresh(true); };
+
+var reseatSe = function(){ S.seKey=''; S.step=0; stop(); buildSeGrid(); syncChrome(); refresh(true); };
+var resizeSe = function(dr, dc){
+  var nr = Math.max(1, Math.min(9, S.seRows + dr));
+  var nc = Math.max(1, Math.min(9, S.seCols + dc));
+  if(nr === S.seRows && nc === S.seCols) return;
+  var fill = allOnes(S.se) ? 1 : 0, out = [], i, j, row, on = 0;
+  for(i = 0; i < nr; i++){ row = [];
+    for(j = 0; j < nc; j++) row.push(i < S.seRows && j < S.seCols ? S.se[i][j] : fill);
+    out.push(row); }
+  S.se = out; S.seRows = nr; S.seCols = nc;
+  for(i=0;i<nr;i++) for(j=0;j<nc;j++) on += S.se[i][j] ? 1 : 0;
+  if(!on){ var c = seCentre(); S.se[c[0]][c[1]] = 1; }
+  reseatSe();
+};
+var setSeAll = function(v){
+  var i,j; for(i=0;i<S.seRows;i++) for(j=0;j<S.seCols;j++) S.se[i][j]=v;
+  if(!v){ var c = seCentre(); S.se[c[0]][c[1]] = 1; }
+  reseatSe();
+};
+
+var syncChrome = function(){
+  var k, b;
+  for(k in OPS) if(OPS.hasOwnProperty(k)){
+    b = document.querySelector('[data-op-btn="' + k + '"]');
+    if(b) b.setAttribute('aria-current', k === S.op ? 'true' : 'false');
+  }
+  for(k in PRESETS) if(PRESETS.hasOwnProperty(k)){
+    b = document.querySelector('[data-preset-btn="' + k + '"]');
+    if(b) b.setAttribute('aria-current', k === S.presetKey ? 'true' : 'false');
+  }
+  for(k in SES) if(SES.hasOwnProperty(k)){
+    b = document.querySelector('[data-se-btn="' + k + '"]');
+    if(b) b.setAttribute('aria-current', k === S.seKey ? 'true' : 'false');
+  }
+  $('op-hint').innerHTML = OPS[S.op].hint;
+  $('mode-toggle').setAttribute('aria-pressed', S.mode === 'gray' ? 'true' : 'false');
+  $('a-dims').textContent = S.rows + '×' + S.cols;
+  $('a-r').textContent = S.rows; $('a-c').textContent = S.cols;
+  $('paint-hint').innerHTML = S.mode === 'gray'
+    ? 'Click a cell in board <b>A</b> to raise it; shift-click to lower it.'
+    : 'Click a cell in board <b>A</b> to toggle 0 / 1.';
+};
+
+var stop = function(){
+  S.playing = false;
+  if(S.timer){ clearInterval(S.timer); S.timer = null; }
+  $('t-play').textContent = '▶ Play';
+  $('t-play').setAttribute('aria-label','Play');
+};
+var play = function(){
+  if(S.step >= total()) S.step = 0;
+  S.playing = true;
+  $('t-play').textContent = '❚❚ Pause';
+  $('t-play').setAttribute('aria-label','Pause');
+  S.timer = setInterval(function(){
+    if(S.step >= total()){ stop(); paint(); return; }
+    S.step++; paint();
+    if(S.step >= total()) stop();
+  }, S.speed);
+};
+var stepBy = function(n){ stop(); S.step = Math.max(0, Math.min(total(), S.step + n)); paint(); };
+
+(function buildControls(){
+  var k;
+  for(k in OPS) if(OPS.hasOwnProperty(k)) (function(key){
+    var b = document.createElement('button');
+    b.className = 'btn'; b.type = 'button'; b.textContent = OPS[key].label;
+    b.dataset.opBtn = key; b.setAttribute('aria-current','false');
+    b.addEventListener('click', function(){ setOp(key); });
+    $('ops').appendChild(b);
+  })(k);
+  for(k in PRESETS) if(PRESETS.hasOwnProperty(k)) (function(key){
+    var b = document.createElement('button');
+    b.className = 'btn'; b.type = 'button'; b.textContent = PRESETS[key].label;
+    b.dataset.presetBtn = key; b.setAttribute('aria-current','false');
+    b.addEventListener('click', function(){ loadPreset(key); });
+    $('presets').appendChild(b);
+  })(k);
+  for(k in SES) if(SES.hasOwnProperty(k)) (function(key){
+    var b = document.createElement('button');
+    b.className = 'btn'; b.type = 'button'; b.textContent = SES[key].label;
+    b.dataset.seBtn = key; b.setAttribute('aria-current','false');
+    b.addEventListener('click', function(){ loadSe(key); });
+    $('se-presets').appendChild(b);
+  })(k);
+})();
+
+$('se-grid').addEventListener('click', function(e){
+  var t = e.target.closest('.se-cell'); if(!t) return;
+  var i = +t.dataset.i, j = +t.dataset.j, on = 0, a, b;
+  for(a=0;a<S.seRows;a++) for(b=0;b<S.seCols;b++) on += S.se[a][b] ? 1 : 0;
+  if(S.se[i][j] && on === 1) return;
+  S.se[i][j] = S.se[i][j] ? 0 : 1;
+  reseatSe();
+});
+
+stage.addEventListener('click', function(e){
+  var t = e.target.closest('.cell');
+  if(!t || t.tagName !== 'BUTTON') return;
+  var r = +t.dataset.r, c = +t.dataset.c;
+  if(S.mode === 'binary') S.A[r][c] = S.A[r][c] ? 0 : 1;
+  else S.A[r][c] = e.shiftKey ? Math.max(0, S.A[r][c]-1) : Math.min(maxVal(), S.A[r][c]+1);
+  S.presetKey = ''; S.step = 0; stop(); syncChrome(); refresh(false);
+});
+
+stage.addEventListener('keydown', function(e){
+  var t = e.target.closest('.cell');
+  if(!t || t.tagName !== 'BUTTON') return;
+  var r = +t.dataset.r, c = +t.dataset.c;
+  if(e.key === 'ArrowUp') r--;
+  else if(e.key === 'ArrowDown') r++;
+  else if(e.key === 'ArrowLeft') c--;
+  else if(e.key === 'ArrowRight') c++;
+  else if(e.key === 'Home') c = 0;
+  else if(e.key === 'End') c = S.cols - 1;
+  else return;
+  e.preventDefault();
+  r = Math.max(0, Math.min(S.rows-1, r));
+  c = Math.max(0, Math.min(S.cols-1, c));
+  var next = boards[0].map[r+','+c];
+  if(next){ t.tabIndex = -1; next.tabIndex = 0; next.focus(); }
+});
+
+$('a-sizer').addEventListener('click', function(e){
+  var b = e.target.closest('[data-asz]'); if(!b) return;
+  var k = b.dataset.asz;
+  resizeA(k === 'r+' ? 1 : (k === 'r-' ? -1 : 0), k === 'c+' ? 1 : (k === 'c-' ? -1 : 0));
+});
+$('a-fill').addEventListener('click',   function(){ setAAll(maxVal()); });
+$('a-clear').addEventListener('click',  function(){ setAAll(0); });
+$('a-invert').addEventListener('click', function(){ invertA(); });
+
+$('sizer').addEventListener('click', function(e){
+  var b = e.target.closest('[data-sz]'); if(!b) return;
+  var k = b.dataset.sz;
+  resizeSe(k === 'r+' ? 1 : (k === 'r-' ? -1 : 0), k === 'c+' ? 1 : (k === 'c-' ? -1 : 0));
+});
+$('se-fill').addEventListener('click',  function(){ setSeAll(1); });
+$('se-clear').addEventListener('click', function(){ setSeAll(0); });
+
+$('mode-toggle').addEventListener('click', function(){
+  stop();
+  if(S.mode === 'binary') S.mode = 'gray';
+  else { S.mode = 'binary'; S.A = S.A.map(function(r){ return r.map(function(v){ return v>0?1:0; }); }); }
+  S.step = 0; syncChrome(); refresh(true);
+});
+$('pad-toggle').addEventListener('click', function(){
+  S.showPad = !S.showPad;
+  $('pad-toggle').setAttribute('aria-pressed', S.showPad ? 'true' : 'false');
+  paint();
+});
+
+$('t-reset').addEventListener('click', function(){ stop(); S.step = 0; paint(); });
+$('t-prev').addEventListener('click',  function(){ stepBy(-1); });
+$('t-next').addEventListener('click',  function(){ stepBy(1); });
+$('t-end').addEventListener('click',   function(){ stop(); S.step = total(); paint(); });
+$('t-play').addEventListener('click',  function(){ S.playing ? stop() : play(); });
+$('t-speed').addEventListener('input', function(e){
+  S.speed = 640 - (+e.target.value);
+  e.target.setAttribute('aria-valuetext', S.speed + ' milliseconds per step');
+  if(S.playing){ stop(); play(); }
+});
+
+document.addEventListener('keydown', function(e){
+  if(e.target.closest('input, .cell, .se-cell')) return;
+  if(e.code === 'Space'){ e.preventDefault(); S.playing ? stop() : play(); }
+  else if(e.key === 'ArrowRight'){ e.preventDefault(); stepBy(1); }
+  else if(e.key === 'ArrowLeft'){ e.preventDefault(); stepBy(-1); }
+  else if(e.key === 'r' || e.key === 'R'){ stop(); S.step = 0; paint(); }
+});
+
+$('copy').addEventListener('click', function(){
+  var btn = $('copy');
+  var txt = codeText().split('\n').map(function(l){
+    return l.indexOf('§%') === 0 ? l.slice(1) : l;
+  }).join('\n');
+  try{
+    navigator.clipboard.writeText(txt).then(function(){
+      btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Copy'; }, 1400);
+    }, function(){ btn.textContent = 'Select it'; });
+  }catch(err){ btn.textContent = 'Select it'; }
+});
+
+var rt;
+window.addEventListener('resize', function(){
+  clearTimeout(rt); rt = setTimeout(function(){ buildStage(); paint(); }, 140);
+});
+
+S.se = SES.ones33.S.map(function(r){ return r.slice(); });
+S.seRows = 3; S.seCols = 3;
+buildSeGrid();
+loadPreset('brain');
+S.op = 'open';
+syncChrome();
+recompute();
+S.step = N() + 18;
+refresh(true);
+
+})();
+</script>
